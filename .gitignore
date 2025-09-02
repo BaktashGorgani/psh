@@ -1,0 +1,9 @@
+# Build files
+target/
+Cargo.lock
+
+# Logs
+logs/
+
+# Backup files
+*.bak
