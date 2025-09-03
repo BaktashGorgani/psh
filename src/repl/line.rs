@@ -4,14 +4,18 @@ use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
     terminal::{self},
 };
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 
 use crate::{
     PshError,
     error::{BuiltinError, Result, UiError},
-    repl::{Router, prompt::render_prompt_line},
+    registry,
+    repl::{Router, parser::Parsed, prompt::render_prompt_line},
     runtime::ReplSettings,
+    shell::Shell,
 };
+
+const CTRL_C: u8 = 0x03;
 
 pub async fn run(router: &mut Router, settings: &ReplSettings) -> Result<()> {
     debug!("repl_line_run start");
@@ -41,7 +45,45 @@ pub async fn run(router: &mut Router, settings: &ReplSettings) -> Result<()> {
                 match code {
                     KeyCode::Char('c') if modifiers.contains(KeyModifiers::CONTROL) => {
                         info!("ctrl-c requested");
-                        break;
+                        let target_shell = match router.parse_preview(&buf) {
+                            Parsed::Entry { name, entry, .. } => match entry {
+                                registry::Entry::Shell(_) => Some(name),
+                                _ => router.get_default_shell(),
+                            },
+                            Parsed::Default { .. } => router.get_default_shell(),
+                        };
+
+                        if let Some(name) = target_shell {
+                            let res = match router
+                                .ensure_shell_session_by_name(&name)
+                                .await
+                            {
+                                Ok(s) => s.send_bytes(vec![CTRL_C]).await,
+                                Err(e) => Err(e),
+                            };
+                            match res {
+                                Ok(()) => info!(shell = %name, "ctrl_c_forwarded"),
+                                Err(e) => {
+                                    warn!(?e, shell = %name, "ctrl_c_forward_failed")
+                                }
+                            }
+                        } else {
+                            debug!("ctrl_c no_target_shell");
+                        }
+
+                        if let Err(e) = (|| -> Result<()> {
+                            out.write_all(b"\r\n").map_err(UiError::IoWrite)?;
+                            Ok(())
+                        })() {
+                            error!(?e, "ctrl_c newline write failed");
+                        }
+
+                        buf.clear();
+                        if let Err(e) =
+                            render_prompt_line(router, &mut out, &buf, settings)
+                        {
+                            error!(?e, "render_prompt_line failed after ctrl-c");
+                        }
                     }
                     KeyCode::Char(ch) => {
                         buf.push(ch);
@@ -94,8 +136,7 @@ pub async fn run(router: &mut Router, settings: &ReplSettings) -> Result<()> {
                         }
                     }
                     KeyCode::Esc => {
-                        info!("escape requested");
-                        break;
+                        debug!("escape requested");
                     }
                     _ => debug!("ignored key"),
                 }

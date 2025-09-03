@@ -10,7 +10,7 @@ use tracing::{debug, error, info, instrument, warn};
 use crate::{
     builtins::{self, BuiltinContext},
     error::{ReplRouterError, Result},
-    registry::{Entry, Registry},
+    registry::{self, Registry},
     repl::parser::{self, Parsed},
     shell::{PtyShell, Shell, ShellEvent, ShellSpec, factory},
 };
@@ -58,12 +58,12 @@ impl Router {
                 entry,
                 command,
             } => match entry {
-                Entry::Shell(spec) => {
+                registry::Entry::Shell(spec) => {
                     let s = self.ensure_shell_session_by_spec(&name, &spec).await?;
                     s.send_line(command).await?;
                     info!(mode = %name, "router_exec shell ok");
                 }
-                Entry::Builtin => match name.as_str() {
+                registry::Entry::Builtin => match name.as_str() {
                     "local" => builtins::local::handle(self, &command).await?,
                     "remote" => builtins::remote::handle(self, &command).await?,
                     "admin" => builtins::admin::handle(self, &command).await?,
@@ -106,7 +106,7 @@ impl Router {
         );
         let _ = self.ensure_shell_session_by_spec(name, &spec).await?;
         self.registry
-            .register_entry(name.to_string(), Entry::Shell(spec));
+            .register_entry(name.to_string(), registry::Entry::Shell(spec));
         info!(name = name, "add_and_start_shell ok");
         Ok(())
     }
@@ -208,13 +208,15 @@ impl Router {
         Ok(s)
     }
 
-    pub async fn list_entries_with_status(&self) -> Vec<(String, Entry, bool)> {
+    pub async fn list_entries_with_status(
+        &self,
+    ) -> Vec<(String, registry::Entry, bool)> {
         debug!("list_entries_with_status start");
         let running = {
             let map = self.sessions.lock().await;
             map.keys().cloned().collect::<HashSet<_>>()
         };
-        let mut v: Vec<(String, Entry, bool)> = self
+        let mut v: Vec<(String, registry::Entry, bool)> = self
             .registry
             .list_entries()
             .into_iter()
@@ -237,7 +239,7 @@ impl Router {
         names
     }
 
-    pub fn register_entry(&mut self, name: String, entry: Entry) {
+    pub fn register_entry(&mut self, name: String, entry: registry::Entry) {
         debug!(name = %name, entry = format!("{:?}", entry), "router_register_entry start");
         self.registry.register_entry(name, entry);
         info!("router_register_entry ok")
@@ -294,7 +296,7 @@ impl BuiltinContext for Router {
         Router::ensure_shell_session_by_name(self, name).await
     }
 
-    async fn list_entries_with_status(&self) -> Vec<(String, Entry, bool)> {
+    async fn list_entries_with_status(&self) -> Vec<(String, registry::Entry, bool)> {
         Router::list_entries_with_status(self).await
     }
 
@@ -302,11 +304,11 @@ impl BuiltinContext for Router {
         Router::list_running_entries(self).await
     }
 
-    fn list_entries(&self) -> Vec<(String, Entry)> {
+    fn list_entries(&self) -> Vec<(String, registry::Entry)> {
         self.registry.list_entries()
     }
 
-    fn register_entry(&mut self, name: String, entry: Entry) {
+    fn register_entry(&mut self, name: String, entry: registry::Entry) {
         Router::register_entry(self, name, entry);
     }
 

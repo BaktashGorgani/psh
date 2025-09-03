@@ -1,6 +1,6 @@
 use tracing::{debug, info};
 
-use crate::registry::{Entry, Registry};
+use crate::registry::{self, Registry};
 
 #[derive(Debug, Clone)]
 pub enum Parsed {
@@ -9,7 +9,7 @@ pub enum Parsed {
     },
     Entry {
         name: String,
-        entry: Entry,
+        entry: registry::Entry,
         command: String,
     },
 }

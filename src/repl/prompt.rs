@@ -9,7 +9,7 @@ use tracing::debug;
 
 use crate::{
     error::{Result, UiError},
-    registry::Entry,
+    registry,
     repl::{Router, parser::Parsed},
     runtime::ReplSettings,
     shell::ShellSpec,
@@ -28,7 +28,7 @@ pub fn render_prompt_line(
     out.queue(Clear(ClearType::CurrentLine))
         .map_err(UiError::IoWrite)?;
 
-    out.queue(Print("> ")).map_err(UiError::IoWrite)?;
+    out.queue(Print("psh> ")).map_err(UiError::IoWrite)?;
 
     if let Some(colon_idx) = buf.find(':') {
         let prefix = &buf[..colon_idx];
@@ -42,9 +42,11 @@ pub fn render_prompt_line(
                 ref entry,
                 ..
             } if name == prefix => match entry {
-                Entry::Builtin => settings.color_builtin,
-                Entry::Shell(ShellSpec::Local { .. }) => settings.color_local,
-                Entry::Shell(ShellSpec::Remote { .. }) => settings.color_remote,
+                registry::Entry::Builtin => settings.color_builtin,
+                registry::Entry::Shell(ShellSpec::Local { .. }) => settings.color_local,
+                registry::Entry::Shell(ShellSpec::Remote { .. }) => {
+                    settings.color_remote
+                }
             },
             _ => settings.color_unknown,
         };

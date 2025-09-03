@@ -3,7 +3,7 @@ use tracing::{debug, info, warn};
 use crate::{
     builtins::{BuiltinContext, format_shell_line},
     error::{BuiltinError, Result},
-    registry::Entry,
+    registry,
     shell::ShellSpec,
     ui::ui_println,
 };
@@ -15,7 +15,7 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
         [] | ["list"] => {
             let mut printed = false;
             for (name, entry, running) in ctx.list_entries_with_status().await {
-                if let Entry::Shell(spec) = entry
+                if let registry::Entry::Shell(spec) = entry
                     && let ShellSpec::Local { .. } = spec
                 {
                     if !printed {
