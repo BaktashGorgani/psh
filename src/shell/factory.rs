@@ -23,10 +23,8 @@ pub async fn spawn(
             extra_args,
         } => {
             let mut argv: Vec<String> = vec!["-tt".to_string()];
-            if let Some(p) = port.as_ref() {
-                argv.push("-p".to_string());
-                argv.push(p.to_string());
-            }
+            argv.push("-p".to_string());
+            argv.push(port.to_string());
             argv.extend(extra_args.iter().cloned());
             argv.push(target.clone());
             let owned = argv;

@@ -5,7 +5,7 @@ use crossterm::{
     style::{Print, ResetColor, SetForegroundColor},
     terminal::{Clear, ClearType},
 };
-use tracing::{debug, info};
+use tracing::debug;
 
 use crate::{
     error::{Result, UiError},

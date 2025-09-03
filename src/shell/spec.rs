@@ -8,9 +8,13 @@ pub enum ShellSpec {
     },
     Remote {
         target: String,
-        #[serde(default)]
-        port: Option<u16>,
+        #[serde(default = "default_ssh_port")]
+        port: u16,
         #[serde(default)]
         extra_args: Vec<String>,
     },
+}
+
+fn default_ssh_port() -> u16 {
+    22
 }

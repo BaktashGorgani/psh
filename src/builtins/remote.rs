@@ -36,8 +36,31 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
                 (*name).to_string(),
                 ShellSpec::Remote {
                     target: dest.to_string(),
-                    port: None,
+                    port: 22,
                     extra_args: vec![],
+                },
+            )
+            .await?;
+            info!(remote = *name, "remote_add ok");
+        }
+        ["add", name, dest, rest @ ..] => {
+            let mut port = 22u16;
+            let mut extra_args: Vec<String> = Vec::new();
+            if let Some(first) = rest.first() {
+                extra_args = match first.parse::<u16>() {
+                    Ok(p) => {
+                        port = p;
+                        rest.iter().skip(1).map(|s| s.to_string()).collect()
+                    }
+                    Err(_) => rest.iter().map(|s| s.to_string()).collect(),
+                }
+            }
+            ctx.add_and_start_shell(
+                (*name).to_string(),
+                ShellSpec::Remote {
+                    target: dest.to_string(),
+                    port,
+                    extra_args,
                 },
             )
             .await?;

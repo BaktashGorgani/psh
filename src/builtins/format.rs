@@ -20,14 +20,7 @@ pub fn format_shell_line(name: &str, spec: &ShellSpec, running: bool) -> String 
             } else {
                 "[disconnected]"
             };
-            let mut line = format!("  {name}: {target}");
-            match port {
-                Some(p) => line.push_str(&format!(":{p}")),
-                None => line.push_str(":22"),
-            }
-            line.push(' ');
-            line.push_str(status);
-            line
+            format!("  {name}: {target}:{port} {status}")
         }
     };
     info!("format_shell_line ok");
