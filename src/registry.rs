@@ -75,7 +75,7 @@ impl Registry {
         debug!(name = name, "get_entry start");
         let r = self.entries.get(name).cloned();
         let present = r.is_some();
-        info!(name = name, present = present, "get_entry ok");
+        debug!(name = name, present = present, "get_entry ok");
         r
     }
 
@@ -103,7 +103,7 @@ impl Registry {
     }
     pub fn max_name_len(&self) -> usize {
         debug!(len = self.max_len, "max_name_len start");
-        info!(len = self.max_len, "max_name_len ok");
+        debug!(len = self.max_len, "max_name_len ok");
         self.max_len
     }
 

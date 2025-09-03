@@ -10,6 +10,8 @@ use crate::{
     shell::ShellSpec,
 };
 
+const ANSI_RESET: &str = "\x1b[0m";
+
 #[derive(Clone)]
 pub struct PshPrompt {
     locked_prefix: Option<String>,
@@ -73,8 +75,6 @@ impl Prompt for PshPrompt {
     fn render_prompt_left(&self) -> Cow<'_, str> {
         debug!("psh_prompt_render_left start");
 
-        let reset = "\x1b[0m";
-
         let psh_colored = Style::new()
             .fg(self.color_prompt)
             .paint("psh> ")
@@ -91,7 +91,7 @@ impl Prompt for PshPrompt {
             None => String::new(),
         };
 
-        let out = format!("{reset}{psh_colored}{locked_colored}");
+        let out = format!("{ANSI_RESET}{psh_colored}{locked_colored}");
         debug!("psh_prompt_render_left ok");
         Cow::Owned(out)
     }
