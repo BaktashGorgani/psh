@@ -1,6 +1,6 @@
 use nu_ansi_term::{Color, Style};
 use reedline::{Highlighter, StyledText};
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 use crate::{
     registry::{self, Registry},
@@ -28,14 +28,14 @@ impl PshHighlighter {
             color_remote: settings.color_remote,
             color_unknown: settings.color_unknown,
         };
-        info!("psh_highlighter_new ok");
+        debug!("psh_highlighter_new ok");
         s
     }
 
     pub fn update_registry(&mut self, registry: Registry) {
         debug!("psh_highlighter_update_registry start");
         self.registry = registry;
-        info!("psh_highlighter_update_registry ok");
+        debug!("psh_highlighter_update_registry ok");
     }
 }
 
@@ -74,13 +74,13 @@ impl Highlighter for PshHighlighter {
                 out.push((Style::new().fg(color), prefix.to_string()));
                 out.push((Style::new(), ":".to_string()));
                 out.push((Style::new(), rest.to_string()));
-                info!("psh_highlight ok");
+                debug!("psh_highlight ok");
                 out
             }
             None => {
                 let mut out: StyledText = StyledText { buffer: Vec::new() };
                 out.push((Style::new(), line.to_string()));
-                info!("psh_highlight ok");
+                debug!("psh_highlight ok");
                 out
             }
         }

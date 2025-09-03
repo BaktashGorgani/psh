@@ -92,25 +92,25 @@ impl Prompt for PshPrompt {
         };
 
         let out = format!("{reset}{psh_colored}{locked_colored}");
-        info!("psh_prompt_render_left ok");
+        debug!("psh_prompt_render_left ok");
         Cow::Owned(out)
     }
 
     fn render_prompt_right(&self) -> Cow<'_, str> {
         debug!("psh_prompt_render_right start");
-        info!("psh_prompt_render_right ok");
+        debug!("psh_prompt_render_right ok");
         Cow::Borrowed("")
     }
 
     fn render_prompt_indicator(&self, _mode: PromptEditMode) -> Cow<'_, str> {
         debug!("psh_prompt_render_indicator start");
-        info!("psh_prompt_render_indicator ok");
+        debug!("psh_prompt_render_indicator ok");
         Cow::Borrowed("")
     }
 
     fn render_prompt_multiline_indicator(&self) -> Cow<'_, str> {
         debug!("psh_prompt_render_multiline start");
-        info!("psh_prompt_render_multiline ok");
+        debug!("psh_prompt_render_multiline ok");
         Cow::Borrowed("... ")
     }
 
@@ -119,7 +119,7 @@ impl Prompt for PshPrompt {
         _history_search: PromptHistorySearch,
     ) -> Cow<'_, str> {
         debug!("psh_prompt_render_history_search start");
-        info!("psh_prompt_render_history_search ok");
+        debug!("psh_prompt_render_history_search ok");
         Cow::Borrowed("(search) ")
     }
 }
