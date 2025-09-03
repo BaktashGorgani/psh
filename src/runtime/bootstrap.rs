@@ -12,6 +12,9 @@ use crate::{
     shell::ShellSpec,
 };
 
+const DEFAULT_SHELL_NAME: &str = "bash";
+const DEFAULT_SHELL_PATH: &str = "/usr/bin/bash";
+
 pub struct AppParts {
     pub cfg: PshConfig,
     pub router: Router,
@@ -54,18 +57,21 @@ async fn eager_start_registered_shells(router: &mut Router) {
 async fn ensure_fallback_bash(router: &mut Router) {
     debug!("ensure_fallback_bash start");
     let bash_present = router.list_entries().iter().any(|(name, entry)| {
-        matches!(entry, registry::Entry::Shell(ShellSpec::Local { .. }) if name == "bash")
+        matches!(entry, registry::Entry::Shell(ShellSpec::Local { .. }) if name == DEFAULT_SHELL_NAME)
     });
     if !bash_present {
         router.register_entry(
-            "bash".to_string(),
+            DEFAULT_SHELL_NAME.to_string(),
             registry::Entry::Shell(ShellSpec::Local {
-                program: "/usr/bin/bash".to_string(),
+                program: DEFAULT_SHELL_PATH.to_string(),
             }),
         );
         info!("fallback bash registered");
     }
-    match router.ensure_shell_session_by_name("bash").await {
+    match router
+        .ensure_shell_session_by_name(DEFAULT_SHELL_NAME)
+        .await
+    {
         Ok(_) => info!("fallback bash started"),
         Err(e) => warn!(?e, "fallback bash start failed "),
     }
@@ -106,8 +112,8 @@ pub async fn bootstrap(cols: u16, rows: u16, verbosity: u8) -> Result<AppParts> 
             config::login_shell_program_name().filter(|n| router.set_default_shell(n))
         })
         .unwrap_or_else(|| {
-            let _ = router.set_default_shell("bash");
-            "bash".to_string()
+            let _ = router.set_default_shell(DEFAULT_SHELL_NAME);
+            DEFAULT_SHELL_NAME.to_string()
         });
     info!(default = %default_shell, "default shell chosen");
 

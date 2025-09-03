@@ -15,7 +15,8 @@ use crate::{
     shell::Shell,
 };
 
-const CTRL_C: u8 = 0x03;
+const CTRL_C_LITERAL: u8 = 0x03;
+const CRLF: &[u8] = b"\r\n";
 
 pub async fn run(router: &mut Router, settings: &ReplSettings) -> Result<()> {
     debug!("repl_line_run start");
@@ -58,7 +59,7 @@ pub async fn run(router: &mut Router, settings: &ReplSettings) -> Result<()> {
                                 .ensure_shell_session_by_name(&name)
                                 .await
                             {
-                                Ok(s) => s.send_bytes(vec![CTRL_C]).await,
+                                Ok(s) => s.send_bytes(vec![CTRL_C_LITERAL]).await,
                                 Err(e) => Err(e),
                             };
                             match res {
@@ -72,7 +73,7 @@ pub async fn run(router: &mut Router, settings: &ReplSettings) -> Result<()> {
                         }
 
                         if let Err(e) = (|| -> Result<()> {
-                            out.write_all(b"\r\n").map_err(UiError::IoWrite)?;
+                            out.write_all(CRLF).map_err(UiError::IoWrite)?;
                             Ok(())
                         })() {
                             error!(?e, "ctrl_c newline write failed");
@@ -106,7 +107,7 @@ pub async fn run(router: &mut Router, settings: &ReplSettings) -> Result<()> {
                         }
                     }
                     KeyCode::Enter => {
-                        out.write_all(b"\r\n").map_err(UiError::IoWrite)?;
+                        out.write_all(CRLF).map_err(UiError::IoWrite)?;
 
                         let line = buf.trim().to_string();
                         if !line.is_empty() {
@@ -121,7 +122,7 @@ pub async fn run(router: &mut Router, settings: &ReplSettings) -> Result<()> {
                                     out.write_all(b"\r").map_err(UiError::IoWrite)?;
                                     out.write_all(format!("error: {e}").as_bytes())
                                         .map_err(UiError::IoWrite)?;
-                                    out.write_all(b"\r\n").map_err(UiError::IoWrite)?;
+                                    out.write_all(CRLF).map_err(UiError::IoWrite)?;
                                     out.flush().map_err(UiError::IoWrite)?;
                                     writeln!(out, "error: {e}")
                                         .map_err(UiError::IoWrite)?;

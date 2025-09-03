@@ -14,6 +14,9 @@ use crate::{
     shell::{Shell, ShellEvent},
 };
 
+const SHELL_CMD_CHANNEL_CAP: usize = 64;
+const SHELL_EVENT_CHANNEL_CAP: usize = 1024;
+
 pub struct MockShell {
     name: String,
     tx: mpsc::Sender<Vec<u8>>,
@@ -66,8 +69,8 @@ impl Shell for MockShell {
 impl MockShell {
     pub fn spawn(name: &str) -> Result<Arc<Self>> {
         debug!(shell = name, "mock_spawn start");
-        let (tx, mut rx) = mpsc::channel::<Vec<u8>>(64);
-        let (ev_tx, _) = broadcast::channel::<ShellEvent>(1024);
+        let (tx, mut rx) = mpsc::channel::<Vec<u8>>(SHELL_CMD_CHANNEL_CAP);
+        let (ev_tx, _) = broadcast::channel::<ShellEvent>(SHELL_EVENT_CHANNEL_CAP);
         let name_owned = name.to_string();
         let ev_tx_cl = ev_tx.clone();
         task::spawn(async move {

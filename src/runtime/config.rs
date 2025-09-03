@@ -15,6 +15,10 @@ use users::{self, os::unix::UserExt};
 
 use crate::shell::ShellSpec;
 
+const DEFAULT_MENU_KEY: (KeyCode, KeyModifiers) =
+    (KeyCode::Char('g'), KeyModifiers::CONTROL);
+const MAX_FUNCTION_KEY: u8 = 24;
+
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct PshConfig {
     pub logging: Option<LoggingSection>,
@@ -102,7 +106,7 @@ fn parse_key_code(token: &str) -> Option<KeyCode> {
         "left" => Some(KeyCode::Left),
         "right" => Some(KeyCode::Right),
         _ => match t.strip_prefix('f').and_then(|n| n.parse::<u8>().ok()) {
-            Some(num) if (1..=24).contains(&num) => Some(KeyCode::F(num)),
+            Some(num) if (1..=MAX_FUNCTION_KEY).contains(&num) => Some(KeyCode::F(num)),
             _ => None,
         },
     }
@@ -161,7 +165,7 @@ pub fn repl_settings_from_config(cfg: &PshConfig) -> ReplSettings {
         .menu_key
         .as_deref()
         .and_then(parse_menu_key)
-        .unwrap_or((KeyCode::Char('g'), KeyModifiers::CONTROL));
+        .unwrap_or(DEFAULT_MENU_KEY);
 
     let defaults = ReplColors {
         builtin: Some("Yellow".into()),

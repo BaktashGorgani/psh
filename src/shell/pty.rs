@@ -16,6 +16,12 @@ use crate::{
     shell::{Shell, ShellCmd, ShellEvent},
 };
 
+const SHELL_CMD_CHANNEL_CAP: usize = 64;
+const SHELL_EVENT_CHANNEL_CAP: usize = 1024;
+const PTY_READ_BUF_SIZE: usize = 4096;
+const NEWLINE: &[u8] = b"\n";
+const SHELL_EXIT_CMD: &[u8] = b"exit\n";
+
 pub struct PtyShell {
     name: String,
     tx: mpsc::Sender<ShellCmd>,
@@ -101,15 +107,15 @@ impl PtyShell {
             Arc::new(Mutex::new(master));
         let writer_arc: Arc<Mutex<Box<dyn Write + Send>>> =
             Arc::new(Mutex::new(writer));
-        let (tx, mut rx) = mpsc::channel::<ShellCmd>(64);
-        let (ev_tx, _) = broadcast::channel::<ShellEvent>(1024);
+        let (tx, mut rx) = mpsc::channel::<ShellCmd>(SHELL_CMD_CHANNEL_CAP);
+        let (ev_tx, _) = broadcast::channel::<ShellEvent>(SHELL_EVENT_CHANNEL_CAP);
 
         let reader_name = name.to_string();
         let ev_tx_reader = ev_tx.clone();
         task::spawn_blocking(move || {
             info!(shell = %reader_name, "reader started");
             let mut r = reader;
-            let mut buf = [0u8; 4096];
+            let mut buf = [0u8; PTY_READ_BUF_SIZE];
             loop {
                 match r.read(&mut buf) {
                     Ok(0) => {
@@ -152,7 +158,7 @@ impl PtyShell {
                         let res = task::spawn_blocking(move || {
                             let mut w = wa.lock().unwrap();
                             w.write_all(line.as_bytes())?;
-                            w.write_all(b"\n")?;
+                            w.write_all(NEWLINE)?;
                             w.flush()
                         })
                         .await;
@@ -229,7 +235,7 @@ impl PtyShell {
                         let wa = writer_arc_task.clone();
                         let _ = task::spawn_blocking(move || {
                             let mut w = wa.lock().unwrap();
-                            w.write_all(b"exit\n")?;
+                            w.write_all(SHELL_EXIT_CMD)?;
                             w.flush()
                         })
                         .await;

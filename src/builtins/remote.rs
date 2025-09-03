@@ -8,6 +8,8 @@ use crate::{
     ui::ui_println,
 };
 
+const DEFAULT_SSH_PORT: u16 = 22;
+
 pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
     debug!(args = args, "builtin_remote_handle start");
     let parts: Vec<&str> = args.split_whitespace().collect();
@@ -36,7 +38,7 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
                 (*name).to_string(),
                 ShellSpec::Remote {
                     target: dest.to_string(),
-                    port: 22,
+                    port: DEFAULT_SSH_PORT,
                     extra_args: vec![],
                 },
             )
@@ -44,7 +46,7 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
             info!(remote = *name, "remote_add ok");
         }
         ["add", name, dest, rest @ ..] => {
-            let mut port = 22u16;
+            let mut port = DEFAULT_SSH_PORT;
             let mut extra_args: Vec<String> = Vec::new();
             if let Some(first) = rest.first() {
                 extra_args = match first.parse::<u16>() {

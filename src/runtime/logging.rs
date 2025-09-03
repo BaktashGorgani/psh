@@ -7,6 +7,11 @@ use tracing_subscriber::{EnvFilter, Registry, fmt, layer::Layer, prelude::*, rel
 
 type FmtLayer = Box<dyn Layer<Registry> + Send + Sync>;
 
+const LOG_DIR: &str = "logs";
+const LOG_FILE: &str = "app.log";
+const VERBOSITY_INFO: u8 = 0;
+const VERBOSITY_DEBUG: u8 = 1;
+
 pub struct LogControl {
     pub guards: Vec<WorkerGuard>,
     fmt_handle: reload::Handle<FmtLayer, Registry>,
@@ -14,14 +19,14 @@ pub struct LogControl {
 
 pub fn init_logging_early(verbosity: u8) -> LogControl {
     debug!("init_logging_early start");
-    let _ = fs::create_dir_all("logs");
+    let _ = fs::create_dir_all(LOG_DIR);
 
-    let (writer, guard) = non_blocking(rolling::daily("logs", "app.log"));
+    let (writer, guard) = non_blocking(rolling::daily(LOG_DIR, LOG_FILE));
     let filter = match verbosity {
-        0 => {
+        VERBOSITY_INFO => {
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"))
         }
-        1 => EnvFilter::new("debug"),
+        VERBOSITY_DEBUG => EnvFilter::new("debug"),
         _ => EnvFilter::new("trace"),
     };
 
@@ -55,7 +60,7 @@ pub fn reconfigure_logging_path(control: &mut LogControl, file_path: Option<Path
                 .unwrap_or_else(|_| fs::File::create(&p).expect("create log file"));
             non_blocking(file)
         }
-        None => non_blocking(rolling::daily("logs", "app.log")),
+        None => non_blocking(rolling::daily(LOG_DIR, LOG_FILE)),
     };
 
     let new_fmt: FmtLayer = fmt::layer().with_writer(writer).with_ansi(false).boxed();
@@ -68,10 +73,10 @@ pub fn reconfigure_logging_path(control: &mut LogControl, file_path: Option<Path
 pub fn set_verbosity(control: &mut LogControl, verbosity: u8) {
     debug!("set_verbosity start");
     let filter = match verbosity {
-        0 => {
+        VERBOSITY_INFO => {
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"))
         }
-        1 => EnvFilter::new("debug"),
+        VERBOSITY_DEBUG => EnvFilter::new("debug"),
         _ => EnvFilter::new("trace"),
     }
     .boxed();

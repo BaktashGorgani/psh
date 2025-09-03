@@ -5,6 +5,10 @@ use crate::{
     shell::{PtyShell, ShellSpec},
 };
 
+const SSH_PROGRAM: &str = "ssh";
+const SSH_PTY_FLAG: &str = "-tt";
+const SSH_PORT_FLAG: &str = "-p";
+
 #[instrument(fields(name = %name, kind = ?spec, cols, rows))]
 pub async fn spawn(
     name: &str,
@@ -22,14 +26,14 @@ pub async fn spawn(
             port,
             extra_args,
         } => {
-            let mut argv: Vec<String> = vec!["-tt".to_string()];
-            argv.push("-p".to_string());
+            let mut argv: Vec<String> = vec![SSH_PTY_FLAG.to_string()];
+            argv.push(SSH_PORT_FLAG.to_string());
             argv.push(port.to_string());
             argv.extend(extra_args.iter().cloned());
             argv.push(target.clone());
             let owned = argv;
             let refs: Vec<&str> = owned.iter().map(|s| s.as_str()).collect();
-            PtyShell::spawn(name, "ssh", &refs, cols, rows).await
+            PtyShell::spawn(name, SSH_PROGRAM, &refs, cols, rows).await
         }
     }?;
     info!("shell_factory_spawn ok");

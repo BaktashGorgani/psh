@@ -15,6 +15,8 @@ use crate::{
     shell::ShellSpec,
 };
 
+const PROMPT: &str = "psh> ";
+
 pub fn render_prompt_line(
     router: &Router,
     out: &mut Stdout,
@@ -28,7 +30,7 @@ pub fn render_prompt_line(
     out.queue(Clear(ClearType::CurrentLine))
         .map_err(UiError::IoWrite)?;
 
-    out.queue(Print("psh> ")).map_err(UiError::IoWrite)?;
+    out.queue(Print(PROMPT)).map_err(UiError::IoWrite)?;
 
     if let Some(colon_idx) = buf.find(':') {
         let prefix = &buf[..colon_idx];
