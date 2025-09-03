@@ -42,7 +42,10 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
             info!(name = *name, program = *program, "local_add_and_start ok");
         }
         ["remove", name] => {
-            let _ = ctx.stop_shell_session(name).await;
+            match ctx.stop_shell_session(name).await {
+                Ok(()) => info!(name = *name, "local_stop ok before remove"),
+                Err(e) => warn!(name = *name, ?e, "local_stop failed before remove"),
+            }
             ctx.unregister_entry(name);
             info!(name = *name, "local_remove ok");
         }

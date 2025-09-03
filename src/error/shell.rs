@@ -1,7 +1,7 @@
 use anyhow::Error as AnyError;
-use tokio::task::JoinError;
-
 use thiserror::Error;
+
+use crate::error::SyncError;
 
 #[derive(Debug, Error)]
 pub enum ShellError {
@@ -29,9 +29,6 @@ pub enum ShellError {
     #[error("failed to wait on child")]
     Wait(#[source] AnyError),
 
-    #[error("background task join failed")]
-    Join(#[source] JoinError),
-
-    #[error("command channel closed")]
-    ChannelClosed,
+    #[error(transparent)]
+    Sync(#[from] SyncError),
 }

@@ -4,12 +4,14 @@ pub mod builtin;
 pub mod repl;
 pub mod runtime;
 pub mod shell;
+pub mod sync;
 pub mod ui;
 
 pub use builtin::BuiltinError;
 pub use repl::{ReplError, ReplRouterError};
 pub use runtime::RuntimeError;
 pub use shell::ShellError;
+pub use sync::SyncError;
 pub use ui::UiError;
 
 #[derive(Debug, Error)]

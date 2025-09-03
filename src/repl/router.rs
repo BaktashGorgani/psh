@@ -104,7 +104,7 @@ impl Router {
             entry = format!("{:?}", spec),
             "add_and_start_shell start"
         );
-        let _ = self.ensure_shell_session_by_spec(name, &spec).await?;
+        self.ensure_shell_session_by_spec(name, &spec).await?;
         self.registry
             .register_entry(name.to_string(), registry::Entry::Shell(spec));
         info!(name = name, "add_and_start_shell ok");
@@ -119,7 +119,9 @@ impl Router {
         };
         match opt {
             Some(s) => {
-                let _ = s.shutdown().await;
+                if let Err(e) = s.shutdown().await {
+                    warn!(name = name, ?e, "stop_shell_session shutdown failed");
+                }
                 info!(name = name, "stop_shell_session ok");
                 Ok(())
             }
@@ -237,6 +239,13 @@ impl Router {
         names.sort();
         info!(count = names.len(), "list_running_shell_names ok");
         names
+    }
+
+    pub fn get_registry_clone(&self) -> Registry {
+        debug!("get_registry_clone start");
+        let r = self.registry.clone();
+        info!("get_registry_clone ok");
+        r
     }
 
     pub fn register_entry(&mut self, name: String, entry: registry::Entry) {

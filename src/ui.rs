@@ -4,6 +4,11 @@ use tracing::{debug, info};
 
 use crate::error::{Result, UiError};
 
+pub mod editor;
+//pub mod prefix_menu;
+
+pub use editor::prompt::PshPrompt;
+
 pub fn ui_print(msg: &str) -> Result<()> {
     debug!(len = msg.len(), "ui_print start");
     stdout()

@@ -7,7 +7,7 @@ use tokio::{
     sync::{broadcast, mpsc},
     task,
 };
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::{
     error::{Result, ShellError},
@@ -27,20 +27,22 @@ pub struct MockShell {
 impl Shell for MockShell {
     async fn send_line(&self, line: String) -> Result<()> {
         debug!(shell = %self.name, %line, "mock_send_line start");
-        self.tx
-            .send(line.into_bytes())
-            .await
-            .map_err(|_| ShellError::ChannelClosed)?;
+        self.tx.send(line.into_bytes()).await.map_err(|e| {
+            ShellError::from(SyncError::ChannelClosed {
+                context: format!("cmd_tx write_line: {e}"),
+            })
+        })?;
         info!(shell = %self.name, "mock_send_line ok");
         Ok(())
     }
 
     async fn send_bytes(&self, bytes: Vec<u8>) -> Result<()> {
         debug!(shell = %self.name, size = bytes.len(), "mock_send_bytes start");
-        self.tx
-            .send(bytes)
-            .await
-            .map_err(|_| ShellError::ChannelClosed)?;
+        self.tx.send(bytes).await.map_err(|e| {
+            ShellError::from(SyncError::ChannelClosed {
+                context: format!("cmd_tx write_line: {e}"),
+            })
+        })?;
         info!(shell = %self.name, "mock_send_bytes ok");
         Ok(())
     }
@@ -53,7 +55,9 @@ impl Shell for MockShell {
 
     async fn shutdown(&self) -> Result<()> {
         debug!(shell = %self.name, "mock_shutdown start");
-        let _ = self.events.send(ShellEvent::Exited("mock_shutdown".into()));
+        if let Err(e) = self.events.send(ShellEvent::Exited("mock_shutdown".into())) {
+            warn!(shell = %self.name, ?e, "mock_shutdown notify failed");
+        }
         info!(shell = %self.name, "mock_shutdown ok");
         Ok(())
     }
@@ -77,7 +81,9 @@ impl MockShell {
             info!(shell = %name_owned, "mock_worker start");
             while let Some(bytes) = rx.recv().await {
                 let s = String::from_utf8_lossy(&bytes).to_string();
-                let _ = ev_tx_cl.send(ShellEvent::Output(s));
+                if let Err(e) = ev_tx_cl.send(ShellEvent::Output(s)) {
+                    warn!(shell = %name_owned, ?e, "mock_worker notify failed");
+                }
             }
             info!(shell = %name_owned, "mock_worker done");
         });

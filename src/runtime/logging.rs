@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf};
 
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_appender::{non_blocking, rolling};
 use tracing_subscriber::{EnvFilter, Registry, fmt, layer::Layer, prelude::*, reload};
@@ -19,7 +19,9 @@ pub struct LogControl {
 
 pub fn init_logging_early(verbosity: u8) -> LogControl {
     debug!("init_logging_early start");
-    let _ = fs::create_dir_all(LOG_DIR);
+    if let Err(e) = fs::create_dir_all(LOG_DIR) {
+        warn!(?e, dir = LOG_DIR, "create_log_dir failed (continuing)");
+    }
 
     let (writer, guard) = non_blocking(rolling::daily(LOG_DIR, LOG_FILE));
     let filter = match verbosity {
@@ -50,21 +52,32 @@ pub fn reconfigure_logging_path(control: &mut LogControl, file_path: Option<Path
     debug!("reconfigure_logging_path start");
     let (writer, guard) = match file_path {
         Some(p) => {
-            if let Some(dir) = p.parent() {
-                let _ = fs::create_dir_all(dir);
+            if let Some(dir) = p.parent()
+                && let Err(e) = fs::create_dir_all(dir)
+            {
+                warn!(?e, dir = %dir.display(), "create_log_dir failed");
             }
-            let file = fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&p)
-                .unwrap_or_else(|_| fs::File::create(&p).expect("create log file"));
-            non_blocking(file)
+            match fs::OpenOptions::new().create(true).append(true).open(&p) {
+                Ok(file) => non_blocking(file),
+                Err(e_open) => {
+                    warn!(?e_open, path = %p.display(), "open log file failed; trying creat");
+                    match fs::File::create(&p) {
+                        Ok(file) => non_blocking(file),
+                        Err(e_create) => {
+                            warn!(?e_create, path = %p.display(), "create log file failed; falling back");
+                            non_blocking(rolling::daily(LOG_DIR, LOG_FILE))
+                        }
+                    }
+                }
+            }
         }
         None => non_blocking(rolling::daily(LOG_DIR, LOG_FILE)),
     };
 
     let new_fmt: FmtLayer = fmt::layer().with_writer(writer).with_ansi(false).boxed();
-    let _ = control.fmt_handle.reload(new_fmt);
+    if let Err(e) = control.fmt_handle.reload(new_fmt) {
+        warn!(?e, "reload fmt layer failed");
+    }
     control.guards = vec![guard];
 
     info!("reconfigure_logging_path ok");
@@ -80,6 +93,8 @@ pub fn set_verbosity(control: &mut LogControl, verbosity: u8) {
         _ => EnvFilter::new("trace"),
     }
     .boxed();
-    let _ = control.fmt_handle.reload(filter);
+    if let Err(e) = control.fmt_handle.reload(filter) {
+        warn!(?e, "reload vebosity failed");
+    }
     info!("set_verbosity ok");
 }

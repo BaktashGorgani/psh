@@ -4,11 +4,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crossterm::{
-    event::{KeyCode, KeyModifiers},
-    style::Color,
-};
+use crossterm::event::{KeyCode, KeyModifiers};
 use directories::BaseDirs;
+use nu_ansi_term::Color;
 use serde::Deserialize;
 use tracing::{debug, info, warn};
 use users::{self, os::unix::UserExt};
@@ -46,6 +44,7 @@ pub struct ReplSection {
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct ReplColors {
+    pub prompt: Option<String>,
     pub builtin: Option<String>,
     pub local: Option<String>,
     pub remote: Option<String>,
@@ -55,6 +54,7 @@ pub struct ReplColors {
 #[derive(Debug, Clone)]
 pub struct ReplSettings {
     pub menu_key: (KeyCode, KeyModifiers),
+    pub color_prompt: Color,
     pub color_builtin: Color,
     pub color_local: Color,
     pub color_remote: Color,
@@ -64,19 +64,19 @@ pub struct ReplSettings {
 fn parse_color(name: &str) -> Option<Color> {
     match name.to_ascii_lowercase().as_str() {
         "black" => Some(Color::Black),
-        "darkgrey" | "darkgray" => Some(Color::DarkGrey),
-        "grey" | "gray" => Some(Color::Grey),
-        "darkred" => Some(Color::DarkRed),
+        "lightgrey" | "lightgray" => Some(Color::LightGray),
+        "darkgrey" | "darkgray" => Some(Color::DarkGray),
+        "lightred" => Some(Color::LightRed),
         "red" => Some(Color::Red),
-        "darkgreen" => Some(Color::DarkGreen),
+        "lightgreen" => Some(Color::LightGreen),
         "green" => Some(Color::Green),
-        "darkyellow" => Some(Color::DarkYellow),
+        "lightyellow" => Some(Color::LightYellow),
         "yellow" => Some(Color::Yellow),
-        "darkblue" => Some(Color::DarkBlue),
+        "lightblue" => Some(Color::LightBlue),
         "blue" => Some(Color::Blue),
-        "darkmagenta" => Some(Color::DarkMagenta),
+        "lightmagenta" => Some(Color::LightMagenta),
         "magenta" => Some(Color::Magenta),
-        "darkcyan" => Some(Color::DarkCyan),
+        "lightcyan" => Some(Color::LightCyan),
         "cyan" => Some(Color::Cyan),
         "white" => Some(Color::White),
         _ => None,
@@ -86,8 +86,10 @@ fn parse_color(name: &str) -> Option<Color> {
 fn parse_key_code(token: &str) -> Option<KeyCode> {
     let t = token.trim().to_ascii_lowercase();
     if t.chars().count() == 1 {
-        let ch = t.chars().next().unwrap();
-        return Some(KeyCode::Char(ch));
+        match t.chars().next() {
+            Some(ch) => return Some(KeyCode::Char(ch)),
+            None => return None,
+        }
     }
     match t.as_str() {
         "space" => Some(KeyCode::Char(' ')),
@@ -168,6 +170,7 @@ pub fn repl_settings_from_config(cfg: &PshConfig) -> ReplSettings {
         .unwrap_or(DEFAULT_MENU_KEY);
 
     let defaults = ReplColors {
+        prompt: Some("White".into()),
         builtin: Some("Yellow".into()),
         local: Some("Green".into()),
         remote: Some("Blue".into()),
@@ -175,6 +178,11 @@ pub fn repl_settings_from_config(cfg: &PshConfig) -> ReplSettings {
     };
     let colors = repl.colors.unwrap_or(defaults);
 
+    let color_prompt = colors
+        .prompt
+        .as_deref()
+        .and_then(parse_color)
+        .unwrap_or(Color::White);
     let color_builtin = colors
         .builtin
         .as_deref()
@@ -199,6 +207,7 @@ pub fn repl_settings_from_config(cfg: &PshConfig) -> ReplSettings {
     info!("repl_settings_from_config ok");
     ReplSettings {
         menu_key,
+        color_prompt,
         color_builtin,
         color_local,
         color_remote,

@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
     let mut router = app.router;
     let settings = app.repl_settings;
 
-    let _ = repl::run_line(&mut router, &settings).await;
+    repl::run_line(&mut router, &settings).await?;
 
     Ok(())
 }

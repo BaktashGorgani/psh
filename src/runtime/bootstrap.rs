@@ -112,8 +112,12 @@ pub async fn bootstrap(cols: u16, rows: u16, verbosity: u8) -> Result<AppParts> 
             config::login_shell_program_name().filter(|n| router.set_default_shell(n))
         })
         .unwrap_or_else(|| {
-            let _ = router.set_default_shell(DEFAULT_SHELL_NAME);
-            DEFAULT_SHELL_NAME.to_string()
+            if router.set_default_shell(DEFAULT_SHELL_NAME) {
+                DEFAULT_SHELL_NAME.to_string()
+            } else {
+                warn!("fallback default shell set failed; using literal name");
+                DEFAULT_SHELL_NAME.to_string()
+            }
         });
     info!(default = %default_shell, "default shell chosen");
 

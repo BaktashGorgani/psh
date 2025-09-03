@@ -107,9 +107,12 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
             info!(remote = *name, "remote_add ok");
         }
         ["remove", name] => {
-            let _ = ctx.stop_shell_session(name).await;
+            match ctx.stop_shell_session(name).await {
+                Ok(()) => info!(name = *name, "remote_stop ok before remove"),
+                Err(e) => warn!(name = *name, ?e, "remote_stop failed before remove"),
+            }
             ctx.unregister_entry(name);
-            info!(remote = *name, "remote_remove ok")
+            info!(name = *name, "local_remove ok");
         }
         ["connect", name] => {
             ctx.ensure_shell_session_by_name(name).await?;
