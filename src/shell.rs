@@ -3,11 +3,16 @@ use tokio::sync::broadcast;
 
 use crate::error::Result;
 
+pub mod cmd;
 pub mod event;
 pub mod factory;
 pub mod pty;
 pub mod spec;
 
+#[cfg(feature = "mock-shell")]
+pub mod mock;
+
+pub use cmd::ShellCmd;
 pub use event::ShellEvent;
 pub use pty::PtyShell;
 pub use spec::ShellSpec;

@@ -13,20 +13,12 @@ use tracing::{debug, error, info, warn};
 
 use crate::{
     error::{Result, ShellError},
-    shell::{Shell, ShellEvent},
+    shell::{Shell, ShellCmd, ShellEvent},
 };
-
-#[derive(Debug)]
-enum ShellMsg {
-    Write(String),
-    WriteBytes(Vec<u8>),
-    Resize(u16, u16),
-    Shutdown,
-}
 
 pub struct PtyShell {
     name: String,
-    tx: mpsc::Sender<ShellMsg>,
+    tx: mpsc::Sender<ShellCmd>,
     events: broadcast::Sender<ShellEvent>,
 }
 
@@ -35,7 +27,7 @@ impl Shell for PtyShell {
     async fn send_line(&self, line: String) -> Result<()> {
         debug!(shell = %self.name, %line, "send_line");
         self.tx
-            .send(ShellMsg::Write(line))
+            .send(ShellCmd::WriteLine(line))
             .await
             .map_err(|_| ShellError::ChannelClosed)?;
         info!(shell = %self.name, "send_line ok");
@@ -45,7 +37,7 @@ impl Shell for PtyShell {
     async fn send_bytes(&self, bytes: Vec<u8>) -> Result<()> {
         debug!(shell = %self.name, size = bytes.len(), "send_bytes");
         self.tx
-            .send(ShellMsg::WriteBytes(bytes))
+            .send(ShellCmd::WriteBytes(bytes))
             .await
             .map_err(|_| ShellError::ChannelClosed)?;
         info!(shell = %self.name, "send_bytes ok");
@@ -55,7 +47,7 @@ impl Shell for PtyShell {
     async fn resize(&self, cols: u16, rows: u16) -> Result<()> {
         debug!(shell = %self.name, cols, rows, "resize");
         self.tx
-            .send(ShellMsg::Resize(cols, rows))
+            .send(ShellCmd::Resize(cols, rows))
             .await
             .map_err(|_| ShellError::ChannelClosed)?;
         info!(shell = %self.name, "resize ok");
@@ -65,7 +57,7 @@ impl Shell for PtyShell {
     async fn shutdown(&self) -> Result<()> {
         debug!(shell = %self.name, "shutdown");
         self.tx
-            .send(ShellMsg::Shutdown)
+            .send(ShellCmd::Shutdown)
             .await
             .map_err(|_| ShellError::ChannelClosed)?;
         info!(shell = %self.name, "shutdown ok");
@@ -109,7 +101,7 @@ impl PtyShell {
             Arc::new(Mutex::new(master));
         let writer_arc: Arc<Mutex<Box<dyn Write + Send>>> =
             Arc::new(Mutex::new(writer));
-        let (tx, mut rx) = mpsc::channel::<ShellMsg>(64);
+        let (tx, mut rx) = mpsc::channel::<ShellCmd>(64);
         let (ev_tx, _) = broadcast::channel::<ShellEvent>(1024);
 
         let reader_name = name.to_string();
@@ -154,7 +146,7 @@ impl PtyShell {
             info!(shell = %writer_name, "writer started");
             while let Some(msg) = rx.recv().await {
                 match msg {
-                    ShellMsg::Write(line) => {
+                    ShellCmd::WriteLine(line) => {
                         debug!(shell = %writer_name, %line, "write requested");
                         let wa = writer_arc_task.clone();
                         let res = task::spawn_blocking(move || {
@@ -182,7 +174,7 @@ impl PtyShell {
                             }
                         }
                     }
-                    ShellMsg::WriteBytes(bytes) => {
+                    ShellCmd::WriteBytes(bytes) => {
                         debug!(shell = %writer_name, size = bytes.len(), "write_bytes requested");
                         let wa = writer_arc_task.clone();
                         let res = task::spawn_blocking(move || {
@@ -209,7 +201,7 @@ impl PtyShell {
                             }
                         }
                     }
-                    ShellMsg::Resize(cols, rows) => {
+                    ShellCmd::Resize(cols, rows) => {
                         debug!(shell = %writer_name, cols, rows, "resize requested");
                         let ma = master_arc_task.clone();
                         let res = task::spawn_blocking(move || {
@@ -232,7 +224,7 @@ impl PtyShell {
                             }
                         }
                     }
-                    ShellMsg::Shutdown => {
+                    ShellCmd::Shutdown => {
                         info!(shell = %writer_name, "shutdown requested");
                         let wa = writer_arc_task.clone();
                         let _ = task::spawn_blocking(move || {

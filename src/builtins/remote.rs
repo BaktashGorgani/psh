@@ -1,7 +1,7 @@
 use tracing::{debug, info, warn};
 
 use crate::{
-    builtins::BuiltinContext,
+    builtins::{BuiltinContext, format_shell_line},
     error::{BuiltinError, Result},
     registry::Entry,
     shell::ShellSpec,
@@ -13,28 +13,20 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
     let parts: Vec<&str> = args.split_whitespace().collect();
     match parts.as_slice() {
         [] | ["list"] => {
-            let mut any = false;
+            let mut printed = false;
             for (name, entry, running) in ctx.list_entries_with_status().await {
-                if let Entry::Shell(ShellSpec::Remote { target, port, .. }) = entry {
-                    if !any {
+                if let Entry::Shell(spec) = entry
+                    && let ShellSpec::Remote { .. } = spec
+                {
+                    if !printed {
                         ui_println("Remote shell list:")?;
-                        any = true;
+                        printed = true;
                     }
-                    let status = if running {
-                        "[connected]"
-                    } else {
-                        "[disconnected]"
-                    };
-                    let mut line = format!("  {}: {}", name, target);
-                    match port {
-                        Some(p) => line.push_str(&format!(":{p}")),
-                        None => line.push_str(":22"),
-                    }
-                    line.push_str(&format!(" {status}"));
+                    let line = format_shell_line(&name, &spec, running);
                     ui_println(&line)?;
                 }
             }
-            if !any {
+            if !printed {
                 ui_println("No remote shells registered")?;
             }
             info!("remote_list ok");

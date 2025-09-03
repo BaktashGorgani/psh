@@ -9,9 +9,12 @@ use crate::{
 };
 
 pub mod admin;
+pub mod format;
 pub mod local;
 pub mod quit;
 pub mod remote;
+
+pub use format::format_shell_line;
 
 #[async_trait]
 pub trait BuiltinContext: Send {

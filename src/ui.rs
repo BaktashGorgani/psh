@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::{Write, stdout};
 
 use tracing::{debug, info};
 
@@ -6,7 +6,7 @@ use crate::error::{Result, UiError};
 
 pub fn ui_print(msg: &str) -> Result<()> {
     debug!(len = msg.len(), "ui_print start");
-    io::stdout()
+    stdout()
         .write_all(msg.as_bytes())
         .map_err(UiError::IoWrite)?;
     info!("ui_print ok");
@@ -15,7 +15,7 @@ pub fn ui_print(msg: &str) -> Result<()> {
 
 pub fn ui_println(msg: &str) -> Result<()> {
     debug!(len = msg.len(), "ui_print start");
-    let mut out = io::stdout();
+    let mut out = stdout();
     out.write_all(b"\r").map_err(UiError::IoWrite)?;
     out.write_all(msg.as_bytes()).map_err(UiError::IoWrite)?;
     out.write_all(b"\r\n").map_err(UiError::IoWrite)?;
@@ -26,7 +26,7 @@ pub fn ui_println(msg: &str) -> Result<()> {
 
 pub fn ui_flush() -> Result<()> {
     debug!("ui_flush start");
-    io::stdout().flush().map_err(UiError::IoWrite)?;
+    stdout().flush().map_err(UiError::IoWrite)?;
     info!("ui_flush ok");
     Ok(())
 }

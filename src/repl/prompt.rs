@@ -60,6 +60,9 @@ pub fn render_prompt_line(
     }
 
     out.flush().map_err(UiError::IoWrite)?;
-    info!("render_line ok");
+
+    #[cfg(feature = "ui-verbose")]
+    info!("render_prompt_line ok");
+
     Ok(())
 }
