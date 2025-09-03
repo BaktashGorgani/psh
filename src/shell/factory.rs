@@ -2,12 +2,13 @@ use tracing::{debug, info, instrument};
 
 use crate::{
     error::Result,
-    shell::{PtyShell, ShellSpec},
+    shell::{PtyShell, ShellSpec, spec::RemoteBackend},
 };
 
 const SSH_PROGRAM: &str = "ssh";
 const SSH_PTY_FLAG: &str = "-tt";
 const SSH_PORT_FLAG: &str = "-p";
+const TELNET_PROGRAM: &str = "telnet";
 
 #[instrument(fields(name = %name, kind = ?spec, cols, rows))]
 pub async fn spawn(
@@ -21,20 +22,24 @@ pub async fn spawn(
         ShellSpec::Local { program } => {
             PtyShell::spawn(name, program, &[], cols, rows).await
         }
-        ShellSpec::Remote {
-            target,
-            port,
-            extra_args,
-        } => {
-            let mut argv: Vec<String> = vec![SSH_PTY_FLAG.to_string()];
-            argv.push(SSH_PORT_FLAG.to_string());
-            argv.push(port.to_string());
-            argv.extend(extra_args.iter().cloned());
-            argv.push(target.clone());
-            let owned = argv;
-            let refs: Vec<&str> = owned.iter().map(|s| s.as_str()).collect();
-            PtyShell::spawn(name, SSH_PROGRAM, &refs, cols, rows).await
-        }
+        ShellSpec::Remote { target, backend } => match backend {
+            RemoteBackend::Ssh { port, extra_args } => {
+                let mut argv: Vec<String> = vec![SSH_PTY_FLAG.to_string()];
+                argv.push(SSH_PORT_FLAG.to_string());
+                argv.push(port.to_string());
+                argv.extend(extra_args.iter().cloned());
+                argv.push(target.clone());
+                let refs: Vec<&str> = argv.iter().map(|s| s.as_str()).collect();
+                PtyShell::spawn(name, SSH_PROGRAM, &refs, cols, rows).await
+            }
+            RemoteBackend::Telnet { port, extra_args } => {
+                let mut argv: Vec<String> = extra_args.clone();
+                argv.push(target.clone());
+                argv.push(port.to_string());
+                let refs: Vec<&str> = argv.iter().map(|s| s.as_str()).collect();
+                PtyShell::spawn(name, TELNET_PROGRAM, &refs, cols, rows).await
+            }
+        },
     }?;
     info!("shell_factory_spawn ok");
     Ok(shell)

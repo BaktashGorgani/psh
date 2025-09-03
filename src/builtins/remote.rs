@@ -4,11 +4,12 @@ use crate::{
     builtins::{BuiltinContext, format_shell_line},
     error::{BuiltinError, Result},
     registry,
-    shell::ShellSpec,
+    shell::{ShellSpec, spec::RemoteBackend},
     ui::ui_println,
 };
 
 const DEFAULT_SSH_PORT: u16 = 22;
+const DEFAULT_TELNET_PORT: u16 = 23;
 
 pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
     debug!(args = args, "builtin_remote_handle start");
@@ -33,19 +34,21 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
             }
             info!("remote_list ok");
         }
-        ["add", name, dest] => {
+        ["add", name, "ssh", dest] => {
             ctx.add_and_start_shell(
-                (*name).to_string(),
+                name.to_string(),
                 ShellSpec::Remote {
                     target: dest.to_string(),
-                    port: DEFAULT_SSH_PORT,
-                    extra_args: vec![],
+                    backend: RemoteBackend::Ssh {
+                        port: DEFAULT_SSH_PORT,
+                        extra_args: vec![],
+                    },
                 },
             )
             .await?;
             info!(remote = *name, "remote_add ok");
         }
-        ["add", name, dest, rest @ ..] => {
+        ["add", name, "ssh", dest, rest @ ..] => {
             let mut port = DEFAULT_SSH_PORT;
             let mut extra_args: Vec<String> = Vec::new();
             if let Some(first) = rest.first() {
@@ -58,11 +61,46 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
                 }
             }
             ctx.add_and_start_shell(
-                (*name).to_string(),
+                name.to_string(),
                 ShellSpec::Remote {
                     target: dest.to_string(),
-                    port,
-                    extra_args,
+                    backend: RemoteBackend::Ssh { port, extra_args },
+                },
+            )
+            .await?;
+            info!(remote = *name, "remote_add ok");
+        }
+        ["add", name, "telnet", dest] => {
+            ctx.add_and_start_shell(
+                name.to_string(),
+                ShellSpec::Remote {
+                    target: dest.to_string(),
+                    backend: RemoteBackend::Telnet {
+                        port: DEFAULT_TELNET_PORT,
+                        extra_args: vec![],
+                    },
+                },
+            )
+            .await?;
+            info!(remote = *name, "remote_add ok");
+        }
+        ["add", name, "telnet", dest, rest @ ..] => {
+            let mut port = DEFAULT_TELNET_PORT;
+            let mut extra_args: Vec<String> = Vec::new();
+            if let Some(first) = rest.first() {
+                extra_args = match first.parse::<u16>() {
+                    Ok(p) => {
+                        port = p;
+                        rest.iter().skip(1).map(|s| s.to_string()).collect()
+                    }
+                    Err(_) => rest.iter().map(|s| s.to_string()).collect(),
+                }
+            }
+            ctx.add_and_start_shell(
+                name.to_string(),
+                ShellSpec::Remote {
+                    target: dest.to_string(),
+                    backend: RemoteBackend::Telnet { port, extra_args },
                 },
             )
             .await?;

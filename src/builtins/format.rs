@@ -1,6 +1,6 @@
 use tracing::{debug, info};
 
-use crate::shell::ShellSpec;
+use crate::shell::{ShellSpec, spec::RemoteBackend};
 
 pub fn format_shell_line(name: &str, spec: &ShellSpec, running: bool) -> String {
     debug!(
@@ -14,13 +14,20 @@ pub fn format_shell_line(name: &str, spec: &ShellSpec, running: bool) -> String 
             let status = if running { "[running]" } else { "[stopped]" };
             format!("  {name}: {program} {status}")
         }
-        ShellSpec::Remote { target, port, .. } => {
+        ShellSpec::Remote { target, backend } => {
             let status = if running {
                 "[connected]"
             } else {
                 "[disconnected]"
             };
-            format!("  {name}: {target}:{port} {status}")
+            match backend {
+                RemoteBackend::Ssh { port, .. } => {
+                    format!("  {name} (ssh): {target}:{port} {status}")
+                }
+                RemoteBackend::Telnet { port, .. } => {
+                    format!("  {name} (telnet): {target}:{port} {status}")
+                }
+            }
         }
     };
     info!("format_shell_line ok");
