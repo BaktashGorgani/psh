@@ -80,7 +80,7 @@ impl Prompt for PshPrompt {
             .paint("psh> ")
             .to_string();
 
-        let locked_colored = match &self.locked_prefix {
+        let prefix_colored = match &self.locked_prefix {
             Some(name) => {
                 let color = self.color_for_prefix(name);
                 Style::new()
@@ -91,7 +91,7 @@ impl Prompt for PshPrompt {
             None => String::new(),
         };
 
-        let out = format!("{ANSI_RESET}{psh_colored}{locked_colored}");
+        let out = format!("{ANSI_RESET}{psh_colored}{prefix_colored}");
         debug!("psh_prompt_render_left ok");
         Cow::Owned(out)
     }
