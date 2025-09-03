@@ -25,7 +25,7 @@ pub enum ShellSpec {
         program: String,
     },
     Remote {
-        target: String,
+        host: String,
         #[serde(flatten)]
         backend: RemoteBackend,
     },

@@ -14,7 +14,7 @@ pub fn format_shell_line(name: &str, spec: &ShellSpec, running: bool) -> String 
             let status = if running { "[running]" } else { "[stopped]" };
             format!("  {name}: {program} {status}")
         }
-        ShellSpec::Remote { target, backend } => {
+        ShellSpec::Remote { host, backend } => {
             let status = if running {
                 "[connected]"
             } else {
@@ -22,10 +22,10 @@ pub fn format_shell_line(name: &str, spec: &ShellSpec, running: bool) -> String 
             };
             match backend {
                 RemoteBackend::Ssh { port, .. } => {
-                    format!("  {name} (ssh): {target}:{port} {status}")
+                    format!("  {name} (ssh): {host}:{port} {status}")
                 }
                 RemoteBackend::Telnet { port, .. } => {
-                    format!("  {name} (telnet): {target}:{port} {status}")
+                    format!("  {name} (telnet): {host}:{port} {status}")
                 }
             }
         }

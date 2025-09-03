@@ -38,7 +38,7 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
             ctx.add_and_start_shell(
                 name.to_string(),
                 ShellSpec::Remote {
-                    target: dest.to_string(),
+                    host: dest.to_string(),
                     backend: RemoteBackend::Ssh {
                         port: DEFAULT_SSH_PORT,
                         extra_args: vec![],
@@ -63,7 +63,7 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
             ctx.add_and_start_shell(
                 name.to_string(),
                 ShellSpec::Remote {
-                    target: dest.to_string(),
+                    host: dest.to_string(),
                     backend: RemoteBackend::Ssh { port, extra_args },
                 },
             )
@@ -74,7 +74,7 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
             ctx.add_and_start_shell(
                 name.to_string(),
                 ShellSpec::Remote {
-                    target: dest.to_string(),
+                    host: dest.to_string(),
                     backend: RemoteBackend::Telnet {
                         port: DEFAULT_TELNET_PORT,
                         extra_args: vec![],
@@ -99,7 +99,7 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
             ctx.add_and_start_shell(
                 name.to_string(),
                 ShellSpec::Remote {
-                    target: dest.to_string(),
+                    host: dest.to_string(),
                     backend: RemoteBackend::Telnet { port, extra_args },
                 },
             )

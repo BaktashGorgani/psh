@@ -22,19 +22,19 @@ pub async fn spawn(
         ShellSpec::Local { program } => {
             PtyShell::spawn(name, program, &[], cols, rows).await
         }
-        ShellSpec::Remote { target, backend } => match backend {
+        ShellSpec::Remote { host, backend } => match backend {
             RemoteBackend::Ssh { port, extra_args } => {
                 let mut argv: Vec<String> = vec![SSH_PTY_FLAG.to_string()];
                 argv.push(SSH_PORT_FLAG.to_string());
                 argv.push(port.to_string());
                 argv.extend(extra_args.iter().cloned());
-                argv.push(target.clone());
+                argv.push(host.clone());
                 let refs: Vec<&str> = argv.iter().map(|s| s.as_str()).collect();
                 PtyShell::spawn(name, SSH_PROGRAM, &refs, cols, rows).await
             }
             RemoteBackend::Telnet { port, extra_args } => {
                 let mut argv: Vec<String> = extra_args.clone();
-                argv.push(target.clone());
+                argv.push(host.clone());
                 argv.push(port.to_string());
                 let refs: Vec<&str> = argv.iter().map(|s| s.as_str()).collect();
                 PtyShell::spawn(name, TELNET_PROGRAM, &refs, cols, rows).await
