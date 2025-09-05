@@ -4,18 +4,24 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crossterm::event::{KeyCode, KeyModifiers};
 use directories::BaseDirs;
 use nu_ansi_term::Color;
+use reedline::{KeyCode, KeyModifiers};
 use serde::Deserialize;
 use tracing::{debug, info, warn};
 use users::{self, os::unix::UserExt};
 
 use crate::shell::ShellSpec;
 
+const MAX_FUNCTION_KEY: u8 = 24;
 const DEFAULT_MENU_KEY: (KeyCode, KeyModifiers) =
     (KeyCode::Char('g'), KeyModifiers::CONTROL);
-const MAX_FUNCTION_KEY: u8 = 24;
+
+#[derive(Debug, Clone, Copy)]
+pub enum EditMode {
+    Emacs,
+    Vi,
+}
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct PshConfig {
@@ -40,6 +46,7 @@ pub struct ShellsSection {
 pub struct ReplSection {
     pub menu_key: Option<String>,
     pub colors: Option<ReplColors>,
+    pub edit_mode: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default, Clone)]
@@ -54,6 +61,7 @@ pub struct ReplColors {
 #[derive(Debug, Clone)]
 pub struct ReplSettings {
     pub menu_key: (KeyCode, KeyModifiers),
+    pub edit_menu: EditMode,
     pub color_prompt: Color,
     pub color_builtin: Color,
     pub color_local: Color,
@@ -159,6 +167,15 @@ fn parse_menu_key(s: &str) -> Option<(KeyCode, KeyModifiers)> {
     code.map(|c| (c, mods))
 }
 
+fn parse_edit_mode(s: &str) -> Option<EditMode> {
+    let t = s.trim().to_ascii_lowercase();
+    match t.as_str() {
+        "emacs" => Some(EditMode::Emacs),
+        "vi" | "vim" => Some(EditMode::Vi),
+        _ => None,
+    }
+}
+
 pub fn repl_settings_from_config(cfg: &PshConfig) -> ReplSettings {
     debug!("repl_settings_from_config start");
     let repl = cfg.repl.clone().unwrap_or_default();
@@ -168,6 +185,12 @@ pub fn repl_settings_from_config(cfg: &PshConfig) -> ReplSettings {
         .as_deref()
         .and_then(parse_menu_key)
         .unwrap_or(DEFAULT_MENU_KEY);
+
+    let edit_menu = repl
+        .edit_mode
+        .as_deref()
+        .and_then(parse_edit_mode)
+        .unwrap_or(EditMode::Emacs);
 
     let defaults = ReplColors {
         prompt: Some("White".into()),
@@ -207,6 +230,7 @@ pub fn repl_settings_from_config(cfg: &PshConfig) -> ReplSettings {
     info!("repl_settings_from_config ok");
     ReplSettings {
         menu_key,
+        edit_menu,
         color_prompt,
         color_builtin,
         color_local,

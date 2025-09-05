@@ -25,11 +25,11 @@ pub async fn handle(ctx: &mut dyn BuiltinContext, args: &str) -> Result<()> {
                 }
             }
         }
-        ["default", "set", name] => match ctx.set_default_shell(name) {
+        ["default", "set", name] => match ctx.set_default_mode(name) {
             true => info!(name = *name, "set_default_shell ok"),
             false => warn!(name = *name, "set_default_shell unknown"),
         },
-        ["default", "get"] => match ctx.get_default_shell() {
+        ["default", "get"] => match ctx.get_default_mode() {
             Some(n) => info!(name = %n, "shell_default"),
             None => warn!("shell_default unset"),
         },

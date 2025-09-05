@@ -5,7 +5,7 @@ use tracing::{debug, info};
 use crate::error::{Result, UiError};
 
 pub mod editor;
-//pub mod prefix_menu;
+pub mod prefix_menu;
 
 pub use editor::prompt::PshPrompt;
 

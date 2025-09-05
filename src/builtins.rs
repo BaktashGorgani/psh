@@ -35,6 +35,9 @@ pub trait BuiltinContext: Send {
     fn register_entry(&mut self, name: String, entry: registry::Entry);
     fn unregister_entry(&mut self, name: &str);
 
-    fn set_default_shell(&mut self, name: &str) -> bool;
-    fn get_default_shell(&self) -> Option<String>;
+    fn get_current_mode(&self) -> Option<String>;
+    fn set_current_mode(&mut self, name: &str) -> bool;
+
+    fn get_default_mode(&self) -> Option<String>;
+    fn set_default_mode(&mut self, name: &str) -> bool;
 }

@@ -18,7 +18,7 @@ const DEFAULT_SHELL_PATH: &str = "/usr/bin/bash";
 pub struct AppParts {
     pub cfg: PshConfig,
     pub router: Router,
-    pub default_shell: String,
+    pub default_mode: String,
     pub log_control: LogControl,
     pub repl_settings: ReplSettings,
 }
@@ -94,7 +94,7 @@ pub async fn bootstrap(cols: u16, rows: u16, verbosity: u8) -> Result<AppParts> 
     reconfigure_logging_path(&mut log_control, log_path);
 
     let registry = build_base_registry();
-    let mut router = Router::new(registry, None, cols, rows);
+    let mut router = Router::new(registry, cols, rows);
     info!("router initialized");
 
     apply_shells_from_config(&cfg, &mut router);
@@ -103,29 +103,31 @@ pub async fn bootstrap(cols: u16, rows: u16, verbosity: u8) -> Result<AppParts> 
 
     let repl_settings = config::repl_settings_from_config(&cfg);
 
-    let default_shell = cfg
+    let default_mode = cfg
         .shells
         .as_ref()
         .and_then(|s| s.default_shell.clone())
-        .filter(|name| router.set_default_shell(name))
+        .filter(|name| router.set_default_mode(name))
         .or_else(|| {
-            config::login_shell_program_name().filter(|n| router.set_default_shell(n))
+            config::login_shell_program_name().filter(|n| router.set_default_mode(n))
         })
         .unwrap_or_else(|| {
-            if router.set_default_shell(DEFAULT_SHELL_NAME) {
+            if router.set_default_mode(DEFAULT_SHELL_NAME) {
                 DEFAULT_SHELL_NAME.to_string()
             } else {
-                warn!("fallback default shell set failed; using literal name");
+                warn!("fallback default mode set failed; using literal name");
                 DEFAULT_SHELL_NAME.to_string()
             }
         });
-    info!(default = %default_shell, "default shell chosen");
+    info!(default = %default_mode, "default mode chosen");
+
+    router.set_current_mode(&default_mode);
 
     info!("bootstrap ok");
     Ok(AppParts {
         cfg,
         router,
-        default_shell,
+        default_mode,
         log_control,
         repl_settings,
     })
